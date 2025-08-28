@@ -1,0 +1,55 @@
+"""
+Utility functions for Presidio PII detection
+"""
+
+import json
+import logging
+import os
+from datetime import datetime
+
+
+def setup_logging(log_prefix="presidio_detection"):
+    """Set up logging configuration for both console and file output."""
+    os.makedirs('logs', exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_filename = f"logs/{log_prefix}_{timestamp}.log"
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_filename, mode='w')
+        ]
+    )
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"Logging initialized. Log file: {log_filename}")
+    return logger
+
+
+def load_jsonl(file_path):
+    """Loads a JSONL file into a list of dictionaries."""
+    text_list = []
+    with open(file_path, 'r') as file:
+        for line in file:
+            data = json.loads(line)
+            text_list.append({
+                "id": data.get('id'), 
+                "text": data.get('text'), 
+                "pii": data.get('pii_types', [])
+            })
+    return text_list
+
+
+def normalize_entity_type(entity_type):
+    """Normalize entity types to consistent format."""
+    entity_mapping = {
+        'EMAIL_ADDRESS': 'email',
+        'PHONE_NUMBER': 'phone',
+        'CREDIT_CARD': 'credit_card',
+        'DB_URI': 'db_uri',
+        'API_KEY': 'api_key',
+        'PERSON': 'name',
+        'LOCATION': 'address'
+    }
+    return entity_mapping.get(entity_type, entity_type.lower())
